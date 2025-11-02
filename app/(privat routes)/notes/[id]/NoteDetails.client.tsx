@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { fetchNoteById } from "@/lib/api/api";
+import { fetchNoteById } from "@/lib/api/clientApi";
 import css from "./NoteDetails.module.css";
 
 export default function NoteDetailsClient() {
@@ -27,7 +27,6 @@ export default function NoteDetailsClient() {
         <div className={css.header}>
           <h2>{note.title}</h2>
 
-          {/* 🔽 Кнопка закрытия */}
           <button
             className={css.closeButton}
             onClick={() => router.back()}
