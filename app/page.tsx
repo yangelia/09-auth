@@ -15,7 +15,7 @@ export default async function Home() {
           The app provides a clean interface for writing, editing, and browsing
           notes. With support for keyword search and structured organization,
           NoteHub offers a streamlined experience for anyone who values clarity
-          and productivity.
+          and productivity *
         </p>
 
         <div style={{ textAlign: "center", marginTop: "2rem" }}>
