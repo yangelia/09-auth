@@ -39,15 +39,26 @@ export const fetchNoteById = async (id: string): Promise<Note> => {
 export type RegisterRequest = { email: string; password: string };
 
 export const register = async (data: RegisterRequest): Promise<User> => {
-  const res = await nextServer.post<User>("/auth/register", data);
-  return res.data;
+  const res = await nextServer.post("/auth/register", data);
+
+  // NoteHub API возвращает: { user: {...}, message: "Registration successful" }
+  if (!res.data || !res.data.user) {
+    throw new Error("Invalid response from server");
+  }
+
+  return res.data.user as User;
 };
 
 export type LoginRequest = { email: string; password: string };
 
 export const login = async (data: LoginRequest): Promise<User> => {
-  const res = await nextServer.post<User>("/auth/login", data);
-  return res.data;
+  const res = await nextServer.post("/auth/login", data);
+
+  if (!res.data || !res.data.user) {
+    throw new Error("Invalid response from server");
+  }
+
+  return res.data.user as User;
 };
 
 type CheckSessionResponse = { success: boolean };

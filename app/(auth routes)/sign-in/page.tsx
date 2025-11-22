@@ -20,11 +20,20 @@ export default function SignInPage() {
     const password = (new FormData(form).get("password") as string) || "";
 
     try {
-      const user = await login({ email, password }); // Куки выставит /api/auth/login
+      const user = await login({ email, password });
       setUser(user);
       router.push("/profile");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Login failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        return;
+      }
+
+      const axiosError = err as {
+        response?: { data?: { message?: string } };
+      };
+
+      setError(axiosError?.response?.data?.message || "Login failed");
     }
   };
 
