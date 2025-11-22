@@ -18,7 +18,7 @@ export default function SignUpPage() {
     const password = (new FormData(form).get("password") as string) || "";
 
     try {
-      await register({ email, password }); // Куки поставит /api/auth/register
+      await register({ email, password });
       router.push("/profile");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Registration failed");

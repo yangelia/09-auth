@@ -7,14 +7,12 @@ export default async function AuthLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await checkSessionServer();
+  const isAuth = await checkSessionServer();
 
-  if (user) {
-    // Уже залогинен — не даём ходить по /sign-in и /sign-up
+  if (isAuth) {
     redirect("/profile");
   }
 
-  // Публичный доступ
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
       {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { checkSession } from "@/lib/api/clientApi";
+import { checkSession, getMe } from "@/lib/api/clientApi";
 import { useAuthStore } from "@/lib/store/authStore";
 
 export default function AuthProvider({
@@ -15,15 +15,20 @@ export default function AuthProvider({
   useEffect(() => {
     async function initAuth() {
       try {
-        const user = await checkSession();
-        if (user?.email) setUser(user);
-        else clearIsAuthenticated();
+        const isAuth = await checkSession();
+        if (isAuth) {
+          const user = await getMe();
+          setUser(user);
+        } else {
+          clearIsAuthenticated();
+        }
       } catch {
         clearIsAuthenticated();
       } finally {
         setLoading(false);
       }
     }
+
     initAuth();
   }, [setUser, clearIsAuthenticated]);
 

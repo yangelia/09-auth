@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createNote } from "@/lib/api/api";
+import { createNote } from "@/lib/api/clientApi";
 import { useDraftNote } from "@/lib/store/noteStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import css from "./NoteForm.module.css";
@@ -17,7 +17,6 @@ export default function NoteForm({ onClose }: { onClose?: () => void }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       clearDraft();
-      // Если форму открыли в модалке — закрываем модалку, иначе возвращаемся назад
       if (onClose) {
         onClose();
       } else {
@@ -44,11 +43,13 @@ export default function NoteForm({ onClose }: { onClose?: () => void }) {
       return;
     }
 
-    createMutation.mutate({
+    const payload: CreateNoteRequest = {
       title: draft.title,
       content: draft.content || "",
       tag: draft.tag || "Todo",
-    });
+    };
+
+    createMutation.mutate(payload);
   };
 
   const handleCancel = () => {
