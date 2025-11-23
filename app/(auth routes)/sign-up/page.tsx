@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/api/clientApi";
+import { AxiosError } from "axios";
 import css from "./SignUpPage.module.css";
 
 export default function SignUpPage() {
@@ -14,14 +15,24 @@ export default function SignUpPage() {
     setError("");
 
     const form = e.currentTarget;
-    const email = (new FormData(form).get("email") as string) || "";
-    const password = (new FormData(form).get("password") as string) || "";
+    const formData = new FormData(form);
+
+    const email = (formData.get("email") as string) || "";
+    const password = (formData.get("password") as string) || "";
 
     try {
       await register({ email, password });
       router.push("/profile");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Registration failed");
+    } catch (err) {
+      let message = "Registration failed";
+
+      if (err instanceof AxiosError) {
+        message = err.response?.data?.message || err.message || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+
+      setError(message);
     }
   };
 
