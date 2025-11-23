@@ -3,8 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/api/clientApi";
-import { AxiosError } from "axios";
 import { useAuthStore } from "@/lib/store/authStore";
+import { AxiosError } from "axios";
 import css from "./SignUpPage.module.css";
 
 export default function SignUpPage() {
@@ -16,19 +16,19 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
 
-    const formData = new FormData(e.currentTarget);
-    const email = (formData.get("email") as string) || "";
-    const password = (formData.get("password") as string) || "";
+    const form = e.currentTarget;
+    const email = String(new FormData(form).get("email") || "");
+    const password = String(new FormData(form).get("password") || "");
 
     try {
       const user = await register({ email, password });
-      setUser(user);
+      setUser(user); // ⬅️ обязательное требование ментора
       router.push("/profile");
     } catch (err) {
       let message = "Registration failed";
 
       if (err instanceof AxiosError) {
-        message = err.response?.data?.message || err.message || message;
+        message = err.response?.data?.message || err.message;
       } else if (err instanceof Error) {
         message = err.message;
       }

@@ -2,25 +2,27 @@ import { cookies } from "next/headers";
 import { nextServer } from "./api";
 import type { User } from "@/types/user";
 import type { Note } from "@/types/note";
-import type { AxiosResponse } from "axios";
 
 function cookieHeaders() {
   return { Cookie: cookies().toString() };
 }
 
-export async function checkSessionServer(): Promise<
-  AxiosResponse<{ success: boolean }>
-> {
-  return nextServer.get("/auth/session", {
-    headers: cookieHeaders(),
-  });
+export async function checkSessionServer() {
+  try {
+    const res = await nextServer.get<{ success: boolean }>("/auth/session", {
+      headers: cookieHeaders(),
+    });
+    return res;
+  } catch {
+    return null;
+  }
 }
 
 export async function getMeServer(): Promise<User> {
-  const res = await nextServer.get<User>("/users/me", {
+  const { data } = await nextServer.get<User>("/users/me", {
     headers: cookieHeaders(),
   });
-  return res.data;
+  return data;
 }
 
 export async function fetchNotesServer(params: {
@@ -29,19 +31,16 @@ export async function fetchNotesServer(params: {
   search?: string;
   tag?: string;
 }): Promise<{ notes: Note[]; totalPages: number }> {
-  const res = await nextServer.get<{ notes: Note[]; totalPages: number }>(
-    "/notes",
-    {
-      params,
-      headers: cookieHeaders(),
-    }
-  );
-  return res.data;
+  const { data } = await nextServer.get("/notes", {
+    params,
+    headers: cookieHeaders(),
+  });
+  return data;
 }
 
 export async function fetchNoteByIdServer(id: string): Promise<Note> {
-  const res = await nextServer.get<Note>(`/notes/${id}`, {
+  const { data } = await nextServer.get(`/notes/${id}`, {
     headers: cookieHeaders(),
   });
-  return res.data;
+  return data;
 }

@@ -2,23 +2,15 @@
 
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { checkSession } from "@/lib/api/clientApi";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    async function protect() {
-      const isAuth = await checkSession();
-      if (isAuth) {
-        router.replace("/profile");
-      } else {
-        router.refresh();
-      }
-    }
-
-    protect();
-  }, [router]);
+    if (isAuthenticated) router.replace("/profile");
+  }, [isAuthenticated, router]);
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
