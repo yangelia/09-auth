@@ -2,7 +2,7 @@ import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { fetchNoteByIdServer } from "@/lib/api/serverApi";
 import getQueryClient from "@/lib/getQueryClient";
 import Modal from "@/components/Modal/Modal";
-import NoteDetailsClient from "@/app/(privat routes)/notes/[id]/NoteDetails.client";
+import NoteDetailsClient from "@/app/(private routes)/notes/[id]/NoteDetails.client";
 
 function NoteModal({ noteId }: { noteId: string }) {
   return (
