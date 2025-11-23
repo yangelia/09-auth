@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { fetchNotes } from "@/lib/api/clientApi";
 import NoteList from "@/components/NoteList/NoteList";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import Pagination from "@/components/Pagination/Pagination";
-import NoteForm from "@/components/NoteForm/NoteForm";
-import Modal from "@/components/Modal/Modal";
 import css from "./page.module.css";
 
 export default function NotesClient() {
@@ -23,15 +22,14 @@ export default function NotesClient() {
 
   const [page, setPage] = useState(initialPage);
   const [search, setSearch] = useState(initialSearch);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const updateURL = (newPage: number, newSearch: string) => {
-    const params = new URLSearchParams();
-    if (newPage > 1) params.set("page", newPage.toString());
-    if (newSearch) params.set("search", newSearch);
+    const sp = new URLSearchParams();
+    if (newPage > 1) sp.set("page", newPage.toString());
+    if (newSearch) sp.set("search", newSearch);
 
     const basePath = `/notes/filter/${currentTag}`;
-    const queryString = params.toString();
+    const queryString = sp.toString();
     const url = queryString ? `${basePath}?${queryString}` : basePath;
 
     router.push(url, { scroll: false });
@@ -87,12 +85,10 @@ export default function NotesClient() {
               onPageChange={handlePageChange}
             />
           )}
-          <button
-            className={css.addButton}
-            onClick={() => setIsModalOpen(true)}
-          >
+
+          <Link href="/notes/action/create" className={css.addButton}>
             + Create Note
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -104,12 +100,6 @@ export default function NotesClient() {
       )}
 
       {isSuccess && data && <NoteList notes={data.notes} />}
-
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onClose={() => setIsModalOpen(false)} />
-        </Modal>
-      )}
     </div>
   );
 }

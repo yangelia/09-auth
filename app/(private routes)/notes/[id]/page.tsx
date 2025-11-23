@@ -5,13 +5,13 @@ import NoteDetailsClient from "./NoteDetails.client";
 import type { Metadata } from "next";
 
 interface NoteDetailsPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: NoteDetailsPageProps): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const note = await fetchNoteByIdServer(id);
@@ -62,7 +62,7 @@ export async function generateMetadata({
 export default async function NoteDetailsPage({
   params,
 }: NoteDetailsPageProps) {
-  const { id } = params;
+  const { id } = await params;
   const queryClient = getQueryClient();
 
   await queryClient.prefetchQuery({

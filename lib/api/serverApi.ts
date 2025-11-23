@@ -2,23 +2,27 @@ import { cookies } from "next/headers";
 import { nextServer } from "./api";
 import type { User } from "@/types/user";
 import type { Note } from "@/types/note";
+import type { AxiosResponse } from "axios";
 
 function cookieHeaders() {
   return { Cookie: cookies().toString() };
 }
 
-export async function checkSessionServer(): Promise<boolean> {
-  try {
-    const { data } = await nextServer.get<{ success: boolean }>(
-      "/auth/session",
-      {
-        headers: cookieHeaders(),
-      }
-    );
-    return data.success;
-  } catch {
-    return false;
-  }
+function cookieHeadersFromString(cookieHeader: string) {
+  return { Cookie: cookieHeader };
+}
+
+// ❗ Теперь возвращаем полный AxiosResponse и можем работать как из server-компонента, так и из middleware
+export async function checkSessionServer(
+  cookieHeader?: string
+): Promise<AxiosResponse<{ success: boolean }>> {
+  const headers = cookieHeader
+    ? cookieHeadersFromString(cookieHeader)
+    : cookieHeaders();
+
+  return nextServer.get<{ success: boolean }>("/auth/session", {
+    headers,
+  });
 }
 
 export async function getMeServer(): Promise<User> {
