@@ -1,32 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkSession } from "@/lib/api/clientApi";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const isAuth = await checkSession();
-
-        if (isAuth) {
-          router.replace("/profile");
-        } else {
-          router.refresh();
-        }
-      } catch {
+    async function protect() {
+      const isAuth = await checkSession();
+      if (isAuth) {
+        router.replace("/profile");
+      } else {
         router.refresh();
       }
-    };
+    }
 
-    void verifyAuth();
+    protect();
   }, [router]);
 
   return (

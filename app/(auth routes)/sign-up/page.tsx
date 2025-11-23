@@ -2,8 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AxiosError } from "axios";
 import { register } from "@/lib/api/clientApi";
+import { AxiosError } from "axios";
 import { useAuthStore } from "@/lib/store/authStore";
 import css from "./SignUpPage.module.css";
 
@@ -16,9 +16,7 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-
+    const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string) || "";
     const password = (formData.get("password") as string) || "";
 

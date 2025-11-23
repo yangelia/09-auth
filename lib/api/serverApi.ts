@@ -8,28 +8,19 @@ function cookieHeaders() {
   return { Cookie: cookies().toString() };
 }
 
-function cookieHeadersFromString(cookieHeader: string) {
-  return { Cookie: cookieHeader };
-}
-
-// ❗ Теперь возвращаем полный AxiosResponse и можем работать как из server-компонента, так и из middleware
-export async function checkSessionServer(
-  cookieHeader?: string
-): Promise<AxiosResponse<{ success: boolean }>> {
-  const headers = cookieHeader
-    ? cookieHeadersFromString(cookieHeader)
-    : cookieHeaders();
-
-  return nextServer.get<{ success: boolean }>("/auth/session", {
-    headers,
+export async function checkSessionServer(): Promise<
+  AxiosResponse<{ success: boolean }>
+> {
+  return nextServer.get("/auth/session", {
+    headers: cookieHeaders(),
   });
 }
 
 export async function getMeServer(): Promise<User> {
-  const { data } = await nextServer.get<User>("/users/me", {
+  const res = await nextServer.get<User>("/users/me", {
     headers: cookieHeaders(),
   });
-  return data;
+  return res.data;
 }
 
 export async function fetchNotesServer(params: {
@@ -38,19 +29,19 @@ export async function fetchNotesServer(params: {
   search?: string;
   tag?: string;
 }): Promise<{ notes: Note[]; totalPages: number }> {
-  const { data } = await nextServer.get<{ notes: Note[]; totalPages: number }>(
+  const res = await nextServer.get<{ notes: Note[]; totalPages: number }>(
     "/notes",
     {
       params,
       headers: cookieHeaders(),
     }
   );
-  return data;
+  return res.data;
 }
 
 export async function fetchNoteByIdServer(id: string): Promise<Note> {
-  const { data } = await nextServer.get<Note>(`/notes/${id}`, {
+  const res = await nextServer.get<Note>(`/notes/${id}`, {
     headers: cookieHeaders(),
   });
-  return data;
+  return res.data;
 }
