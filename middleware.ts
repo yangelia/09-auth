@@ -1,30 +1,81 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { parse } from "cookie";
+import { checkSessionServer } from "@/lib/api/serverApi";
 
 const authRoutes = ["/sign-in", "/sign-up"];
 const privateRoutes = ["/notes", "/profile"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const accessToken = request.cookies.get("accessToken")?.value || null;
+  const accessToken = request.cookies.get("accessToken")?.value;
+  const refreshToken = request.cookies.get("refreshToken")?.value;
 
-  const isAuthenticated = Boolean(accessToken);
   const isAuthRoute = authRoutes.some((r) => pathname.startsWith(r));
-  const isPrivate = privateRoutes.some((r) => pathname.startsWith(r));
+  const isPrivateRoute = privateRoutes.some((r) => pathname.startsWith(r));
 
-  // Неавторизованный → хочет приватный путь
-  if (!isAuthenticated && isPrivate) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
+  // ----- 1. Нет accessToken -----
+  if (!accessToken) {
+    if (refreshToken) {
+      try {
+        const apiRes = await checkSessionServer();
+
+        // typed version — NO ANY
+        const rawSetCookie = apiRes?.headers?.["set-cookie"];
+        const setCookie: string[] = Array.isArray(rawSetCookie)
+          ? rawSetCookie
+          : rawSetCookie
+          ? [rawSetCookie]
+          : [];
+
+        if (setCookie.length > 0) {
+          const response = NextResponse.next();
+
+          for (const cookieStr of setCookie) {
+            const parsed = parse(cookieStr);
+
+            const options = {
+              path: parsed.Path,
+              expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
+              maxAge: parsed["Max-Age"] ? Number(parsed["Max-Age"]) : undefined,
+            };
+
+            if (parsed.accessToken) {
+              response.cookies.set("accessToken", parsed.accessToken, options);
+            }
+
+            if (parsed.refreshToken) {
+              response.cookies.set(
+                "refreshToken",
+                parsed.refreshToken,
+                options
+              );
+            }
+          }
+
+          if (isAuthRoute) {
+            return NextResponse.redirect(new URL("/profile", request.url));
+          }
+
+          return response;
+        }
+      } catch {
+        if (isPrivateRoute) {
+          return NextResponse.redirect(new URL("/sign-in", request.url));
+        }
+      }
+    }
+
+    if (isPrivateRoute) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    return NextResponse.next();
   }
 
-  // Авторизованный → пытается попасть на /sign-in или /sign-up
-  if (isAuthenticated && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/profile";
-    return NextResponse.redirect(url);
+  // ----- 2. Есть accessToken → нельзя попадать на sign-in/sign-up -----
+  if (isAuthRoute) {
+    return NextResponse.redirect(new URL("/profile", request.url));
   }
 
   return NextResponse.next();

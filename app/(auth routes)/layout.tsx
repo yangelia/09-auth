@@ -9,7 +9,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (isAuthenticated) router.replace("/profile");
+    // 1. Требование ментора — всегда обновлять роутер при монтировании
+    router.refresh();
+
+    // 2. Если пользователь авторизован — редиректим
+    if (isAuthenticated) {
+      router.replace("/profile");
+    }
   }, [isAuthenticated, router]);
 
   return (
