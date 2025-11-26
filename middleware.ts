@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
             response.cookies.set("refreshToken", parsed.refreshToken, options);
         }
 
-        // обновили — если это sign-in → редиректим на профиль
+        // обновили — если это sign-in/sign-up → редиректим на профиль
         if (isAuthRoute) {
           return NextResponse.redirect(new URL("/profile", request.url));
         }
@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Нет accessToken и нет refreshToken → redirect
+    // Нет accessToken и нет refreshToken → redirect с приватных маршрутов
     if (isPrivateRoute) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
