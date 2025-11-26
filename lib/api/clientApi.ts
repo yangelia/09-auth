@@ -41,7 +41,6 @@ export type RegisterRequest = { email: string; password: string };
 export const register = async (data: RegisterRequest): Promise<User> => {
   const res = await nextServer.post("/auth/register", data);
 
-  // NoteHub API возвращает: { user: {...}, message: "Registration successful" }
   if (!res.data || !res.data.user) {
     throw new Error("Invalid response from server");
   }
@@ -61,11 +60,25 @@ export const login = async (data: LoginRequest): Promise<User> => {
   return res.data.user as User;
 };
 
-type CheckSessionResponse = { success: boolean };
-
+/* --- Session --- */
+/**
+ * checkSession теперь НЕ использует axios и не вызывает nextServer,
+ * чтобы избежать бесконечных циклов авторизации.
+ *
+ * fetch() делает прямой запрос к NoteHub API и правильно передаёт cookies.
+ */
 export const checkSession = async (): Promise<boolean> => {
-  const res = await nextServer.get<CheckSessionResponse>("/auth/session");
-  return res.data.success;
+  try {
+    const res = await fetch("https://notehub-api.goit.study/auth/session", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await res.json();
+    return data?.success === true;
+  } catch {
+    return false;
+  }
 };
 
 /* --- Users --- */
