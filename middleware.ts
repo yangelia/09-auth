@@ -8,72 +8,69 @@ const privateRoutes = ["/notes", "/profile"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const accessToken = request.cookies.get("accessToken")?.value;
-  const refreshToken = request.cookies.get("refreshToken")?.value;
+  const cookieStore = request.cookies;
+  const accessToken = cookieStore.get("accessToken")?.value || null;
+  const refreshToken = cookieStore.get("refreshToken")?.value || null;
 
   const isAuthRoute = authRoutes.some((r) => pathname.startsWith(r));
   const isPrivateRoute = privateRoutes.some((r) => pathname.startsWith(r));
 
-  // ----- 1. Нет accessToken -----
+  // ---------- 1. Нет accessToken ----------
   if (!accessToken) {
+    // ----- есть refreshToken → пробуем обновить -----
     if (refreshToken) {
-      try {
-        const apiRes = await checkSessionServer();
+      const apiRes = await checkSessionServer();
 
-        // typed version — NO ANY
-        const rawSetCookie = apiRes?.headers?.["set-cookie"];
-        const setCookie: string[] = Array.isArray(rawSetCookie)
-          ? rawSetCookie
-          : rawSetCookie
-          ? [rawSetCookie]
-          : [];
+      const setCookieHeader = apiRes?.headers?.["set-cookie"];
+      const setCookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+        ? [setCookieHeader]
+        : [];
 
-        if (setCookie.length > 0) {
-          const response = NextResponse.next();
+      if (setCookies.length > 0) {
+        const response = NextResponse.next();
 
-          for (const cookieStr of setCookie) {
-            const parsed = parse(cookieStr);
+        for (const cookieStr of setCookies) {
+          const parsed = parse(cookieStr);
+          const options = {
+            path: parsed.Path,
+            expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
+            maxAge: parsed["Max-Age"] ? Number(parsed["Max-Age"]) : undefined,
+          };
 
-            const options = {
-              path: parsed.Path,
-              expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
-              maxAge: parsed["Max-Age"] ? Number(parsed["Max-Age"]) : undefined,
-            };
+          if (parsed.accessToken)
+            response.cookies.set("accessToken", parsed.accessToken, options);
 
-            if (parsed.accessToken) {
-              response.cookies.set("accessToken", parsed.accessToken, options);
-            }
-
-            if (parsed.refreshToken) {
-              response.cookies.set(
-                "refreshToken",
-                parsed.refreshToken,
-                options
-              );
-            }
-          }
-
-          if (isAuthRoute) {
-            return NextResponse.redirect(new URL("/profile", request.url));
-          }
-
-          return response;
+          if (parsed.refreshToken)
+            response.cookies.set("refreshToken", parsed.refreshToken, options);
         }
-      } catch {
-        if (isPrivateRoute) {
-          return NextResponse.redirect(new URL("/sign-in", request.url));
+
+        // обновили — если это sign-in → редиректим на профиль
+        if (isAuthRoute) {
+          return NextResponse.redirect(new URL("/profile", request.url));
         }
+
+        // иначе просто пропускаем
+        return response;
+      }
+
+      // refreshToken невалидный → redirect
+      if (isPrivateRoute) {
+        return NextResponse.redirect(new URL("/sign-in", request.url));
       }
     }
 
+    // Нет accessToken и нет refreshToken → redirect
     if (isPrivateRoute) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
+    // Публичные пути — пропускаем
     return NextResponse.next();
   }
 
-  // ----- 2. Есть accessToken → нельзя попадать на sign-in/sign-up -----
+  // ---------- 2. Есть accessToken, но идёт на sign-in/sign-up ----------
   if (isAuthRoute) {
     return NextResponse.redirect(new URL("/profile", request.url));
   }
