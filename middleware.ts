@@ -7,10 +7,8 @@ function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(prefix + "/");
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  const accessToken = request.cookies.get("accessToken")?.value || null;
 
   const isAuthRoute = authRoutes.some((route) =>
     matchesPrefix(pathname, route)
@@ -19,25 +17,54 @@ export function middleware(request: NextRequest) {
     matchesPrefix(pathname, route)
   );
 
-  // ❌ Нет accessToken → не пускаем на приватные маршруты
-  if (!accessToken && isPrivateRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
+  // 🟦 1) Если идём на приватный маршрут → проверяем на сервере
+  if (isPrivateRoute) {
+    const sessionRes = await fetch(
+      "https://notehub-api.goit.study/auth/session",
+      {
+        method: "GET",
+        headers: {
+          Cookie: request.cookies.toString(),
+        },
+      }
+    );
 
-    // Можно сохранить, куда хотели пойти
-    url.searchParams.set("next", pathname);
+    const { success } = await sessionRes
+      .json()
+      .catch(() => ({ success: false }));
 
-    return NextResponse.redirect(url);
+    if (!success) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
   }
 
-  // ✅ Есть accessToken → не пускаем на /sign-in и /sign-up
-  if (accessToken && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/profile";
-    return NextResponse.redirect(url);
+  // 🟩 2) Если авторизованы — не пускаем на /sign-in и /sign-up
+  if (isAuthRoute) {
+    const sessionRes = await fetch(
+      "https://notehub-api.goit.study/auth/session",
+      {
+        method: "GET",
+        headers: {
+          Cookie: request.cookies.toString(),
+        },
+      }
+    );
+
+    const { success } = await sessionRes
+      .json()
+      .catch(() => ({ success: false }));
+
+    if (success) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/profile";
+      return NextResponse.redirect(url);
+    }
   }
 
-  // Для всего остального — просто пропускаем
   return NextResponse.next();
 }
 
