@@ -7,14 +7,15 @@ function cookieHeaders() {
   return { Cookie: cookies().toString() };
 }
 
-export async function checkSessionServer() {
+export async function checkSessionServer(): Promise<boolean> {
   try {
     const res = await nextServer.get<{ success: boolean }>("/auth/session", {
       headers: cookieHeaders(),
     });
-    return res;
+
+    return res.data?.success === true;
   } catch {
-    return null;
+    return false;
   }
 }
 
