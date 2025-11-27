@@ -58,13 +58,14 @@ export const register = async (data: RegisterRequest): Promise<User> => {
 export type LoginRequest = { email: string; password: string };
 
 export const login = async (data: LoginRequest): Promise<User> => {
-  const res = await nextServer.post("/auth/login", data);
+  // 1. Логинимся — куки установятся автоматически
+  await nextServer.post("/auth/login", data);
 
-  if (!res.data || !res.data.user) {
-    throw new Error("Invalid response from server");
-  }
+  // 2. Получаем информацию о текущем пользователе
+  const meRes = await nextServer.get<User>("/users/me");
 
-  return res.data.user as User;
+  // 3. Возвращаем user для Zustand
+  return meRes.data;
 };
 
 /* --- Session --- */
