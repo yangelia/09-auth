@@ -1,37 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { api } from "../../api";
-import { cookies } from "next/headers";
-import { parse } from "cookie";
 import { isAxiosError } from "axios";
 import { logErrorResponse } from "../../_utils/utils";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Отправляем запрос к NoteHub API
     const apiRes = await api.post("auth/login", body);
 
-    const cookieStore = await cookies();
+    // Извлекаем cookie
     const setCookie = apiRes.headers["set-cookie"];
 
-    if (setCookie) {
-      const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
-      for (const cookieStr of cookieArray) {
-        const parsed = parse(cookieStr);
-        const options = {
-          expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
-          path: parsed.Path,
-          maxAge: Number(parsed["Max-Age"]),
-        };
-        if (parsed.accessToken)
-          cookieStore.set("accessToken", parsed.accessToken, options);
-        if (parsed.refreshToken)
-          cookieStore.set("refreshToken", parsed.refreshToken, options);
-      }
+    // Формируем ответ
+    const response = NextResponse.json(apiRes.data, {
+      status: apiRes.status,
+    });
 
-      return NextResponse.json(apiRes.data, { status: apiRes.status });
+    // Передаём все куки корректно (append делает это весомо лучше чем set)
+    if (setCookie && Array.isArray(setCookie)) {
+      for (const cookie of setCookie) {
+        response.headers.append("Set-Cookie", cookie);
+      }
+    } else if (typeof setCookie === "string") {
+      response.headers.append("Set-Cookie", setCookie);
     }
 
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return response;
   } catch (error) {
     if (isAxiosError(error)) {
       logErrorResponse(error.response?.data);
@@ -40,6 +36,7 @@ export async function POST(req: NextRequest) {
         { status: error.status }
       );
     }
+
     logErrorResponse({ message: (error as Error).message });
     return NextResponse.json(
       { error: "Internal Server Error" },
