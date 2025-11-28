@@ -6,68 +6,36 @@ const privateRoutes = ["/profile", "/notes"];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
-  const isPrivate = privateRoutes.some((route) => pathname.startsWith(route));
+  const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
+  const isPrivate = privateRoutes.some((r) => pathname.startsWith(r));
 
-  // ЛОГ: показываем, что происходит
-  console.log(
-    "MIDDLEWARE:",
-    JSON.stringify(
-      {
-        pathname,
-        cookie: request.headers.get("cookie"),
-        isPublic,
-        isPrivate,
-      },
-      null,
-      2
-    )
-  );
+  // Читаем куки корректным способом
+  const cookieString = request.cookies.toString();
 
-  // Проверяем сессию через NoteHub API
+  // Проверяем сессию
   const session = await fetch("https://notehub-api.goit.study/auth/session", {
     method: "GET",
-    credentials: "include",
     headers: {
-      cookie: request.headers.get("cookie") || "",
+      cookie: cookieString,
     },
   });
 
   const data = await session.json().catch(() => ({ success: false }));
   const isAuth = data?.success === true;
 
-  // ЛОГ: статус авторизации
-  console.log(
-    "SESSION:",
-    JSON.stringify(
-      {
-        success: data.success,
-        isAuth,
-      },
-      null,
-      2
-    )
-  );
-
-  // Если не авторизован, но идёт на приватный route → redirect
+  // Неавторизованный пытается на приватный роут → редирект
   if (!isAuth && isPrivate) {
-    console.log("ACTION: redirect → /sign-in");
-
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     return NextResponse.redirect(url);
   }
 
-  // Если авторизован, но идёт на sign-in/sign-up → redirect → /profile
+  // Авторизованный пытается на sign-in/up → редирект
   if (isAuth && isPublic) {
-    console.log("ACTION: redirect → /profile");
-
     const url = request.nextUrl.clone();
     url.pathname = "/profile";
     return NextResponse.redirect(url);
   }
-
-  console.log("ACTION: next()");
 
   return NextResponse.next();
 }
