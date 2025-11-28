@@ -58,7 +58,6 @@ export default async function FilterPage({
     queryFn: () =>
       fetchNotesServer({
         page: currentPage,
-        perPage: 12,
         search,
         tag: tag === "all" ? undefined : tag,
       }),
