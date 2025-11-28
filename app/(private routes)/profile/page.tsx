@@ -3,6 +3,8 @@ import css from "./ProfilePage.module.css";
 import Image from "next/image";
 import { Metadata } from "next";
 import { getMeServer } from "@/lib/api/serverApi";
+import { redirect } from "next/navigation";
+import type { User } from "@/types/user";
 
 export const metadata: Metadata = {
   title: "Profile page",
@@ -25,7 +27,20 @@ export const metadata: Metadata = {
 };
 
 export default async function Profile() {
-  const user = await getMeServer();
+  let user: User | null = null;
+
+  try {
+    user = await getMeServer();
+  } catch (error) {
+    console.error("Profile SSR error:", error);
+    user = null;
+  }
+
+  // Если не получили юзера (например, 401) — отправляем на логин
+  if (!user) {
+    redirect("/sign-in");
+  }
+
   return (
     <main className={css.mainContent}>
       <div className={css.profileCard}>

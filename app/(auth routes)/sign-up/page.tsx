@@ -22,7 +22,12 @@ export default function SignUpPage() {
 
     try {
       const user = await register({ email, password });
-      setUser(user); // ⬅️ обязательное требование ментора
+      setUser(user);
+
+      // Дать браузеру записать куки
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      router.refresh();
       router.push("/profile");
     } catch (err) {
       let message = "Registration failed";
