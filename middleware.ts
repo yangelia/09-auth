@@ -9,18 +9,27 @@ export async function middleware(request: NextRequest) {
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
   const isPrivate = privateRoutes.some((route) => pathname.startsWith(route));
 
-  // Проверяем сессию
-  const session = await fetch("https://notehub-api.goit.study/auth/session", {
-    method: "GET",
-    credentials: "include",
-    headers: {
-      cookie: request.headers.get("cookie") || "",
-    },
-  });
+  // Проверяем сессию, но безопасно
+  let isAuth = false;
 
-  const data = await session.json().catch(() => ({ success: false }));
-  const isAuth = data?.success === true;
+  try {
+    const session = await fetch("https://notehub-api.goit.study/auth/session", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+      },
+    });
 
+    if (session.ok) {
+      const data = await session.json();
+      isAuth = data?.success === true;
+    }
+  } catch {
+    isAuth = false;
+  }
+
+  // --- ЛОГИКА ДОСТУПА ---
   if (!isAuth && isPrivate) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
