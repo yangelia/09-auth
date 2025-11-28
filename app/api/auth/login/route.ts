@@ -7,37 +7,33 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Отправляем запрос к NoteHub API
+    // Шлём логин на NoteHub API
     const apiRes = await api.post("auth/login", body);
 
-    // Извлекаем cookie
+    // Получаем Set-Cookie от NoteHub API
     const setCookie = apiRes.headers["set-cookie"];
 
-    // Формируем ответ
-    const response = NextResponse.json(apiRes.data, {
+    const res = NextResponse.json(apiRes.data, {
       status: apiRes.status,
     });
 
-    // Передаём все куки корректно (append делает это весомо лучше чем set)
-    if (setCookie && Array.isArray(setCookie)) {
-      for (const cookie of setCookie) {
-        response.headers.append("Set-Cookie", cookie);
-      }
-    } else if (typeof setCookie === "string") {
-      response.headers.append("Set-Cookie", setCookie);
+    // Проксируем куки ВЕРНУТЬ пользователю
+    if (setCookie) {
+      setCookie.forEach((cookie: string) => {
+        res.headers.append("Set-Cookie", cookie);
+      });
     }
 
-    return response;
+    return res;
   } catch (error) {
     if (isAxiosError(error)) {
       logErrorResponse(error.response?.data);
       return NextResponse.json(
-        { error: error.message, response: error.response?.data },
-        { status: error.status }
+        { error: error.response?.data?.message || "Login failed" },
+        { status: error.status || 401 }
       );
     }
 
-    logErrorResponse({ message: (error as Error).message });
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
