@@ -38,12 +38,6 @@ export const fetchNoteById = async (id: string): Promise<Note> => {
 /* --- Auth --- */
 export type RegisterRequest = { email: string; password: string };
 
-/**
- * ВАЖНО:
- * GoIT API НЕ возвращает user при регистрации.
- * Поэтому делаем login после успешного register,
- * чтобы получить user + cookies.
- */
 export const register = async (data: RegisterRequest): Promise<User> => {
   // 1. Создаём пользователя
   await nextServer.post("/auth/register", data);
@@ -69,22 +63,9 @@ export const login = async (data: LoginRequest): Promise<User> => {
 };
 
 /* --- Session --- */
-/**
- * checkSession использует fetch() напрямую,
- * чтобы избежать циклов и правильно передавать cookies.
- */
 export const checkSession = async (): Promise<boolean> => {
-  try {
-    const res = await fetch("https://notehub-api.goit.study/auth/session", {
-      method: "GET",
-      credentials: "include",
-    });
-
-    const data = await res.json();
-    return data?.success === true;
-  } catch {
-    return false;
-  }
+  const res = await nextServer.get<{ success: boolean }>("/auth/session");
+  return res.data.success;
 };
 
 /* --- Users --- */

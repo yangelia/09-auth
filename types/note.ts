@@ -20,3 +20,8 @@ export interface DraftNote {
   content: string;
   tag: NoteTag;
 }
+
+export interface NoteListResponse {
+  notes: Note[];
+  totalPages: number;
+}

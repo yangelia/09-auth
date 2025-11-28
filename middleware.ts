@@ -1,73 +1,75 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { parse } from "cookie";
+import { checkServerSession } from "./lib/api/serverApi";
 
-const authRoutes = ["/sign-in", "/sign-up"];
-const privateRoutes = ["/notes", "/profile"];
-
-function matchesPrefix(pathname: string, prefix: string) {
-  return pathname === prefix || pathname.startsWith(prefix + "/");
-}
+const privateRoutes = ["/profile", "/notes"];
+const publicRoutes = ["/sign-in", "/sign-up"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("accessToken")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
 
-  const isAuthRoute = authRoutes.some((route) =>
-    matchesPrefix(pathname, route)
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname.startsWith(route)
   );
   const isPrivateRoute = privateRoutes.some((route) =>
-    matchesPrefix(pathname, route)
+    pathname.startsWith(route)
   );
 
-  // 🟦 1) Если идём на приватный маршрут → проверяем на сервере
-  if (isPrivateRoute) {
-    const sessionRes = await fetch(
-      "https://notehub-api.goit.study/auth/session",
-      {
-        method: "GET",
-        headers: {
-          Cookie: request.cookies.toString(),
-        },
+  if (!accessToken) {
+    if (refreshToken) {
+      console.log("first==========>");
+      const data = await checkServerSession();
+      const setCookie = data.headers["set-cookie"];
+
+      if (setCookie) {
+        const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
+        for (const cookieStr of cookieArray) {
+          const parsed = parse(cookieStr);
+          const options = {
+            expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
+            path: parsed.Path,
+            maxAge: Number(parsed["Max-Age"]),
+          };
+          if (parsed.accessToken)
+            cookieStore.set("accessToken", parsed.accessToken, options);
+          if (parsed.refreshToken)
+            cookieStore.set("refreshToken", parsed.refreshToken, options);
+        }
+        if (isPublicRoute) {
+          return NextResponse.redirect(new URL("/", request.url), {
+            headers: {
+              Cookie: cookieStore.toString(),
+            },
+          });
+        }
+        if (isPrivateRoute) {
+          return NextResponse.next({
+            headers: {
+              Cookie: cookieStore.toString(),
+            },
+          });
+        }
       }
-    );
-
-    const { success } = await sessionRes
-      .json()
-      .catch(() => ({ success: false }));
-
-    if (!success) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/sign-in";
-      return NextResponse.redirect(url);
     }
-
+    if (isPublicRoute) {
+      return NextResponse.next();
+    }
+    if (isPrivateRoute) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+  }
+  if (isPublicRoute) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  if (isPrivateRoute) {
     return NextResponse.next();
   }
-
-  // 🟩 2) Если авторизованы — не пускаем на /sign-in и /sign-up
-  if (isAuthRoute) {
-    const sessionRes = await fetch(
-      "https://notehub-api.goit.study/auth/session",
-      {
-        method: "GET",
-        headers: {
-          Cookie: request.cookies.toString(),
-        },
-      }
-    );
-
-    const { success } = await sessionRes
-      .json()
-      .catch(() => ({ success: false }));
-
-    if (success) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/profile";
-      return NextResponse.redirect(url);
-    }
-  }
-
-  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/notes/:path*", "/profile/:path*", "/sign-in", "/sign-up"],
+  matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
 };
